@@ -2,7 +2,6 @@ mod seam_carving;
 mod pixel_colors;
 
 use std::cmp::max;
-use std::io::stdout;
 use image::GenericImageView;
 
 fn main() {
@@ -11,7 +10,7 @@ fn main() {
     let img_path = arg_matches.value_of("file")
         .expect("Bad implementation, a path should be present");
 
-    let img = image::open(img_path)
+    let mut img = image::open(img_path)
         .expect(format!("No image at '{}'", img_path).as_str());
 
     let arg_height: u32 = arg_matches.value_of("height").unwrap().parse().unwrap();
@@ -25,29 +24,21 @@ fn main() {
     let conf = Default::default();
 
     for _ in 0..delta_width {
-        // Improvement: we don't need to be computing the energy map from scratch
+        // Improvement idea: we don't need to be computing the energy map from scratch
         // If only a pixel is removed from each row, then we only need to compute the energy from
         // that area
         let energy_map = seam_carving::calculate_energy_map_width(&img);
 
+        let seam = seam_carving::find_low_energy_seam_width(&energy_map);
+
         // Good for debugging purposes
-        // seam_carving::print_energy_map(energy_map, &conf);
+        seam_carving::print_energy_map(&energy_map, &conf, &Some(&seam));
 
-        //let seam = find_low_energy_seam_width(energy_map);
+        // img = seam_carving::delete_seam_width(img, &seam);
 
-        //img = delete_seam_width(img, seam);
+        /*viuer::print(&img, &conf)
+            .expect("Image printing failed");*/
     }
-
-    let (_width, height) = viuer::print(&img, &conf)
-        .expect("Image printing failed");
-
-    crossterm::execute!(stdout(),
-        crossterm::cursor::MoveUp(height.try_into().unwrap()),
-        crossterm::terminal::Clear(crossterm::terminal::ClearType::FromCursorDown))
-        .unwrap();
-
-    viuer::print(&img, &conf)
-        .expect("Image printing failed");
 }
 
 fn args<'a, 'b>() -> clap::App<'a, 'b> {

@@ -1,5 +1,5 @@
 use std::cmp::max;
-use image::{DynamicImage, GenericImageView, ImageBuffer, Luma, Rgba};
+use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Luma, Rgba};
 use viuer::Config;
 use crate::pixel_colors::PixelColors;
 
@@ -19,22 +19,83 @@ pub fn calculate_energy_map_width(img: &image::DynamicImage) -> Vec<Vec<i32>> {
     energy_map
 }
 
-pub fn print_energy_map(energy_map: Vec<Vec<i32>>, config: &Config) {
+pub fn find_low_energy_seam_width(energy_map: &Vec<Vec<i32>>) -> Vec<usize> {
     let height = energy_map.len();
     let width = energy_map[0].len();
 
-    let mut max_energy = 1;
+    let mut seam_energies = vec![vec![0 as i32; width]; height];
+    for w in 0..width {
+        seam_energies[0][w] = energy_map[0][w];
+    }
+    for h in 1..height {
+        for w in 0..width {
+            let mut energy = seam_energies[h-1][w];
+            if w > 0 && seam_energies[h-1][w-1] < energy {
+                energy = seam_energies[h-1][w-1];
+            }
+            if w < width-1 && seam_energies[h-1][w+1] < energy {
+                energy = seam_energies[h-1][w+1];
+            }
+
+            seam_energies[h][w] = energy_map[h][w] + energy;
+        }
+    }
+
+    let mut min_start_w_idx = 0;
+    for w in 1..width {
+        if seam_energies[height-1][w] < seam_energies[height-1][min_start_w_idx] {
+            min_start_w_idx = w;
+        }
+    }
+
+    // The index represents the height
+    // The value represents the index of the pixel we want to delete
+    let mut seam_low_energy_path = vec![min_start_w_idx; height];
+    for h in (0..height-1).rev() {
+        let prev_w = seam_low_energy_path[h+1];
+
+        let mut idx = prev_w;
+        if prev_w > 0 && seam_energies[h][prev_w-1] < seam_energies[h][idx] {
+            idx = prev_w - 1;
+        }
+        if prev_w < width-1 && seam_energies[h][prev_w+1] < seam_energies[h][idx] {
+            idx = prev_w + 1;
+        }
+
+        seam_low_energy_path[h] = idx;
+    }
+
+    seam_low_energy_path
+}
+
+pub fn print_energy_map(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Option<&Vec<usize>>) {
+    let height = energy_map.len();
+    let width = energy_map[0].len();
+
+    let mut max_energy = 0;
     for h in 0..height {
         for w in 0..width {
             max_energy = max(max_energy, energy_map[h][w]);
         }
     }
 
-    let img: ImageBuffer<Luma<u8>, Vec<u8>> = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
+    let mut img = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
         let scale: f32 = (energy_map[y as usize][x as usize] as f32) / (max_energy as f32);
         let color: u8 = (scale * (u8::MAX as f32)) as u8;
         Luma([color])
     });
+
+    if let Some(seam) = seam {
+        for h in 0..seam.len() {
+            // u8::MAX == White color
+            img.put_pixel(seam[h] as u32, h as u32, Luma([u8::MAX]));
+        }
+    }
+
+    /*crossterm::execute!(std::io::stdout(),
+        crossterm::cursor::MoveUp(height.try_into().unwrap()),
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::FromCursorDown))
+        .unwrap();*/
 
     viuer::print(&DynamicImage::ImageLuma8(img), config)
         .expect("Error printing energy map");
@@ -52,6 +113,10 @@ fn pixel_energy(left: &Option<Rgba<u8>>, middle: &Rgba<u8>, right: &Option<Rgba<
     if middle_colors.alpha > ALPHA_DELETE_THRESHOLD {
         // No need to do the square root if it applies to all the operations
         left_energy + right_energy
+
+        // If we want to have a better preview of the energy map, then the square root
+        // helps normalise the values
+        // ((left_energy + right_energy) as f32).sqrt() as i32
     } else {
         PIXEL_DELETE_ENERGY
     }
