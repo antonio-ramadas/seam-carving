@@ -68,6 +68,18 @@ pub fn find_low_energy_seam_width(energy_map: &Vec<Vec<i32>>) -> Vec<usize> {
     seam_low_energy_path
 }
 
+pub fn delete_seam_width(img: DynamicImage, seam: &Vec<usize>) -> DynamicImage {
+    let mut img = img;
+
+    for h in 0..img.height() {
+        for w in (seam[h as usize] as u32)..img.width()-1 {
+            img.put_pixel(w, h, img.get_pixel(w+1, h));
+        }
+    }
+
+    img.crop_imm(0, 0, img.width()-1, img.height())
+}
+
 pub fn print_energy_map(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Option<&Vec<usize>>) {
     let height = energy_map.len();
     let width = energy_map[0].len();

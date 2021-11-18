@@ -34,7 +34,7 @@ fn main() {
         // Good for debugging purposes
         seam_carving::print_energy_map(&energy_map, &conf, &Some(&seam));
 
-        // img = seam_carving::delete_seam_width(img, &seam);
+        img = seam_carving::delete_seam_width(img, &seam);
 
         /*viuer::print(&img, &conf)
             .expect("Image printing failed");*/
