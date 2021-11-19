@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 image = "0.23.14"
-viuer = "0.5.2"
+viuer = {version = "0.5.3-antonio-ramadas", path="viuer/target/package/viuer-0.5.3-antonio-ramadas"}
 crossterm = "0.22.1"
 clap = "2.33.3"

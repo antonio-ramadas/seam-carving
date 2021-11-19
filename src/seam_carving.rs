@@ -220,11 +220,11 @@ fn pixel_energy(left: &Option<Rgba<u8>>, middle: &Rgba<u8>, right: &Option<Rgba<
 
     if middle_colors.alpha > ALPHA_DELETE_THRESHOLD {
         // No need to do the square root if it applies to all the operations
-        left_energy + right_energy
+        // left_energy + right_energy
 
         // If we want to have a better preview of the energy map, then the square root
         // helps normalise the values
-        // ((left_energy + right_energy) as f32).sqrt() as i32
+        ((left_energy + right_energy) as f32).sqrt() as i32
     } else {
         PIXEL_DELETE_ENERGY
     }

@@ -3,6 +3,7 @@ mod pixel_colors;
 
 use std::cmp::max;
 use image::{DynamicImage, GenericImageView};
+use std::default::Default;
 use viuer::Config;
 
 fn main() {
@@ -14,16 +15,20 @@ fn main() {
     let mut img = image::open(img_path)
         .expect(format!("No image at '{}'", img_path).as_str());
 
-    let conf = Default::default();
-
-    img = adjust_width( arg_matches.value_of("width").unwrap(), &conf, img);
-    adjust_height( arg_matches.value_of("height").unwrap(), &conf, img);
+    img = adjust_width( arg_matches.value_of("width").unwrap(), img);
+    adjust_height( arg_matches.value_of("height").unwrap(), img);
 }
 
-fn adjust_width(arg_width: &str, conf: &Config, mut img: DynamicImage) -> DynamicImage {
+fn adjust_width(arg_width: &str, mut img: DynamicImage) -> DynamicImage {
     let arg_width: u32 = arg_width.parse().unwrap();
     let to_width = max(1, (img.width() * arg_width) / 100);
     let delta_width = img.width() - to_width;
+
+    let mut conf = Config {
+        height: Some(img.height()),
+        width: Some(img.width()),
+        ..Default::default()
+    };
 
     for _ in 0..delta_width {
         // Improvement idea: we don't need to be computing the energy map from scratch
@@ -37,6 +42,7 @@ fn adjust_width(arg_width: &str, conf: &Config, mut img: DynamicImage) -> Dynami
         seam_carving::print_energy_map_width(&energy_map, &conf, &Some(&seam));
 
         img = seam_carving::delete_seam_width(img, &seam);
+        conf.width = Some(conf.width.unwrap() - 1);
 
         viuer::print(&img, &conf)
             .expect("Image printing failed");
@@ -45,10 +51,16 @@ fn adjust_width(arg_width: &str, conf: &Config, mut img: DynamicImage) -> Dynami
     img
 }
 
-fn adjust_height(arg_height: &str, conf: &Config, mut img: DynamicImage) -> DynamicImage {
+fn adjust_height(arg_height: &str, mut img: DynamicImage) -> DynamicImage {
     let arg_height: u32 = arg_height.parse().unwrap();
     let to_height = max(1, (img.height() * arg_height) / 100);
     let delta_height = img.height() - to_height;
+
+    let mut conf = Config {
+        height: Some(img.height()),
+        width: Some(img.width()),
+        ..Default::default()
+    };
 
     for _ in 0..delta_height {
         // Improvement idea: we don't need to be computing the energy map from scratch
@@ -62,6 +74,7 @@ fn adjust_height(arg_height: &str, conf: &Config, mut img: DynamicImage) -> Dyna
         seam_carving::print_energy_map_height(&energy_map, &conf, &Some(&seam));
 
         img = seam_carving::delete_seam_height(img, &seam);
+        conf.height = Some(conf.height.unwrap() - 1);
 
         viuer::print(&img, &conf)
             .expect("Image printing failed");
