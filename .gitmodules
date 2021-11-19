@@ -1,0 +1,3 @@
+[submodule "viuer"]
+	path = viuer
+	url = https://github.com/antonio-ramadas/viuer.git
