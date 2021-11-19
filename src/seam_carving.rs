@@ -147,7 +147,7 @@ pub fn find_low_energy_seam_height(energy_map: &Vec<Vec<i32>>) -> Vec<usize> {
         if prev_h > 0 && seam_energies[prev_h-1][w] < seam_energies[idx][w] {
             idx = prev_h - 1;
         }
-        if prev_h < width-1 && seam_energies[prev_h+1][w] < seam_energies[idx][w] {
+        if prev_h < height-1 && seam_energies[prev_h+1][w] < seam_energies[idx][w] {
             idx = prev_h + 1;
         }
 
