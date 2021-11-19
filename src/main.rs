@@ -16,11 +16,8 @@ fn main() {
 
     let conf = Default::default();
 
-    let arg_height: u32 = arg_matches.value_of("height").unwrap().parse().unwrap();
-    let to_height = max(1, (img.height() * arg_height) / 100);
-    let delta_height = img.height() - to_height;
-
-    img = adjust_width( arg_matches.value_of("width").unwrap(), &conf, img)
+    img = adjust_width( arg_matches.value_of("width").unwrap(), &conf, img);
+    adjust_height( arg_matches.value_of("height").unwrap(), &conf, img);
 }
 
 fn adjust_width(arg_width: &str, conf: &Config, mut img: DynamicImage) -> DynamicImage {
@@ -30,16 +27,41 @@ fn adjust_width(arg_width: &str, conf: &Config, mut img: DynamicImage) -> Dynami
 
     for _ in 0..delta_width {
         // Improvement idea: we don't need to be computing the energy map from scratch
-        // If only a pixel is removed from each row, then we only need to compute the energy from
+        // If only a pixel is removed from each column, then we only need to compute the energy from
         // that area
         let energy_map = seam_carving::calculate_energy_map_width(&img);
 
         let seam = seam_carving::find_low_energy_seam_width(&energy_map);
 
         // Good for debugging purposes
-        seam_carving::print_energy_map(&energy_map, &conf, &Some(&seam));
+        seam_carving::print_energy_map_width(&energy_map, &conf, &Some(&seam));
 
         img = seam_carving::delete_seam_width(img, &seam);
+
+        viuer::print(&img, &conf)
+            .expect("Image printing failed");
+    }
+
+    img
+}
+
+fn adjust_height(arg_height: &str, conf: &Config, mut img: DynamicImage) -> DynamicImage {
+    let arg_height: u32 = arg_height.parse().unwrap();
+    let to_height = max(1, (img.height() * arg_height) / 100);
+    let delta_height = img.height() - to_height;
+
+    for _ in 0..delta_height {
+        // Improvement idea: we don't need to be computing the energy map from scratch
+        // If only a pixel is removed from each row, then we only need to compute the energy from
+        // that area
+        let energy_map = seam_carving::calculate_energy_map_height(&img);
+
+        let seam = seam_carving::find_low_energy_seam_height(&energy_map);
+
+        // Good for debugging purposes
+        seam_carving::print_energy_map_height(&energy_map, &conf, &Some(&seam));
+
+        img = seam_carving::delete_seam_height(img, &seam);
 
         viuer::print(&img, &conf)
             .expect("Image printing failed");

@@ -80,7 +80,108 @@ pub fn delete_seam_width(img: DynamicImage, seam: &Vec<usize>) -> DynamicImage {
     img.crop_imm(0, 0, img.width()-1, img.height())
 }
 
-pub fn print_energy_map(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Option<&Vec<usize>>) {
+pub fn print_energy_map_width(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Option<&Vec<usize>>) {
+    if let Some(seam) = seam {
+        let mut xy_seam = vec![(0,0); seam.len()];
+        for i in 0..seam.len() {
+            xy_seam[i] = (i, seam[i]);
+        }
+        print_energy_map(energy_map, config, &Some(&xy_seam));
+    } else {
+        print_energy_map(energy_map, config, &None);
+    }
+}
+
+pub fn calculate_energy_map_height(img: &image::DynamicImage) -> Vec<Vec<i32>> {
+    let mut energy_map = vec![vec![0; img.width() as usize]; img.height() as usize];
+
+    for height in 0..img.height() {
+        for width in 0..img.width() {
+            let up = if height == 0 { None } else { Some(img.get_pixel(width, height - 1)) };
+            let middle = img.get_pixel(width, height);
+            let down = if height == img.height()-1 { None } else { Some(img.get_pixel(width, height + 1)) };
+
+            energy_map[height as usize][width as usize] = pixel_energy(&up, &middle, &down);
+        }
+    }
+
+    energy_map
+}
+
+pub fn find_low_energy_seam_height(energy_map: &Vec<Vec<i32>>) -> Vec<usize> {
+    let height = energy_map.len();
+    let width = energy_map[0].len();
+
+    let mut seam_energies = vec![vec![0 as i32; width]; height];
+    for h in 0..height {
+        seam_energies[h][0] = energy_map[h][0];
+    }
+    for w in 1..width {
+        for h in 0..height {
+            let mut energy = seam_energies[h][w-1];
+            if h > 0 && seam_energies[h-1][w-1] < energy {
+                energy = seam_energies[h-1][w-1];
+            }
+            if h < height-1 && seam_energies[h+1][w-1] < energy {
+                energy = seam_energies[h+1][w-1];
+            }
+
+            seam_energies[h][w] = energy_map[h][w] + energy;
+        }
+    }
+
+    let mut min_start_h_idx = 0;
+    for h in 1..height {
+        if seam_energies[h][width-1] < seam_energies[min_start_h_idx][width-1] {
+            min_start_h_idx = h;
+        }
+    }
+
+    // The index represents the width
+    // The value represents the index of the pixel we want to delete
+    let mut seam_low_energy_path = vec![min_start_h_idx; width];
+    for w in (0..width-1).rev() {
+        let prev_h = seam_low_energy_path[w+1];
+
+        let mut idx = prev_h;
+        if prev_h > 0 && seam_energies[prev_h-1][w] < seam_energies[idx][w] {
+            idx = prev_h - 1;
+        }
+        if prev_h < width-1 && seam_energies[prev_h+1][w] < seam_energies[idx][w] {
+            idx = prev_h + 1;
+        }
+
+        seam_low_energy_path[w] = idx;
+    }
+
+    seam_low_energy_path
+}
+
+pub fn delete_seam_height(img: DynamicImage, seam: &Vec<usize>) -> DynamicImage {
+    let mut img = img;
+
+    for w in 0..img.width() {
+        for h in (seam[w as usize] as u32)..img.height()-1 {
+            img.put_pixel(w, h, img.get_pixel(w, h+1));
+        }
+    }
+
+    img.crop_imm(0, 0, img.width(), img.height()-1)
+}
+
+pub fn print_energy_map_height(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Option<&Vec<usize>>) {
+    if let Some(seam) = seam {
+        let mut xy_seam = vec![(0,0); seam.len()];
+        for i in 0..seam.len() {
+            xy_seam[i] = (seam[i], i);
+        }
+        print_energy_map(energy_map, config, &Some(&xy_seam));
+    } else {
+        print_energy_map(energy_map, config, &None);
+    }
+}
+
+fn print_energy_map(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Option<&Vec<(usize,usize)>>) {
     let height = energy_map.len();
     let width = energy_map[0].len();
 
@@ -98,16 +199,11 @@ pub fn print_energy_map(energy_map: &Vec<Vec<i32>>, config: &Config, seam: &Opti
     });
 
     if let Some(seam) = seam {
-        for h in 0..seam.len() {
+        for i in 0..seam.len() {
             // u8::MAX == White color
-            img.put_pixel(seam[h] as u32, h as u32, Luma([u8::MAX]));
+            img.put_pixel(seam[i].1 as u32, seam[i].0 as u32, Luma([u8::MAX]));
         }
     }
-
-    /*crossterm::execute!(std::io::stdout(),
-        crossterm::cursor::MoveUp(height.try_into().unwrap()),
-        crossterm::terminal::Clear(crossterm::terminal::ClearType::FromCursorDown))
-        .unwrap();*/
 
     viuer::print(&DynamicImage::ImageLuma8(img), config)
         .expect("Error printing energy map");
