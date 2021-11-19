@@ -2,7 +2,8 @@ mod seam_carving;
 mod pixel_colors;
 
 use std::cmp::max;
-use image::GenericImageView;
+use image::{DynamicImage, GenericImageView};
+use viuer::Config;
 
 fn main() {
     let arg_matches = args().get_matches();
@@ -13,15 +14,19 @@ fn main() {
     let mut img = image::open(img_path)
         .expect(format!("No image at '{}'", img_path).as_str());
 
+    let conf = Default::default();
+
     let arg_height: u32 = arg_matches.value_of("height").unwrap().parse().unwrap();
     let to_height = max(1, (img.height() * arg_height) / 100);
     let delta_height = img.height() - to_height;
 
-    let arg_width: u32 = arg_matches.value_of("width").unwrap().parse().unwrap();
+    img = adjust_width( arg_matches.value_of("width").unwrap(), &conf, img)
+}
+
+fn adjust_width(arg_width: &str, conf: &Config, mut img: DynamicImage) -> DynamicImage {
+    let arg_width: u32 = arg_width.parse().unwrap();
     let to_width = max(1, (img.width() * arg_width) / 100);
     let delta_width = img.width() - to_width;
-
-    let conf = Default::default();
 
     for _ in 0..delta_width {
         // Improvement idea: we don't need to be computing the energy map from scratch
@@ -36,9 +41,11 @@ fn main() {
 
         img = seam_carving::delete_seam_width(img, &seam);
 
-        /*viuer::print(&img, &conf)
-            .expect("Image printing failed");*/
+        viuer::print(&img, &conf)
+            .expect("Image printing failed");
     }
+
+    img
 }
 
 fn args<'a, 'b>() -> clap::App<'a, 'b> {
