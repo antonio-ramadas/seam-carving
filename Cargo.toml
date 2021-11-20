@@ -1,7 +1,9 @@
 [package]
 name = "seam-carving"
+authors = ["António Ramadas"]
 version = "0.1.0"
 edition = "2021"
+description = "Seam Carving algorithm"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
