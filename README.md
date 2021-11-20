@@ -10,9 +10,9 @@ Let's say we want to shrink an image. The most common technique is to simply shr
 
 Let's say we want to resize from 1500x768 to 510x510 (34% width; 72% height):
 
-| Stretched | Original | Seam Carving |
+| Shrunken | Original | Seam Carving |
 |:-------:|:--------:|:----------:|
-![](img/balloons-stretched.jpg) | ![](img/balloons.jpg) | ![](img/balloons-final.png) |
+![](img/balloons-shrunken.jpg) | ![](img/balloons.jpg) | ![](img/balloons-final.png) |
 
 As you can see, the balloons kept it proportion. We just brought them closer.
 
@@ -22,8 +22,15 @@ To know more about this algorithm, I highly recommend checking the blog post [_C
 
 I'm using this project to learn and try out Rust. Be warned that if you try to run the project, it'll be slow. Not because Rust is slow, but I did not optimise the algorithm. Still, it works and acts as a good baseline for future improvements.
 
-Here is a demo:
-# Missing
+Here is a demo.
+
+What you see:
+
+
+
+What the algorithm sees:
+
+
 
 If you want to run the project, here are the parameters:
 ```shell
@@ -64,6 +71,9 @@ $ cd viuer
 $ cargo package
 $ cd ..
 
-# We can now run as usual
-$ cargo run -- --file=img/balloons.jpg --width=34 --height=72
+# Build with optimisations (multiple times faster execution)
+$ cargo build --release
+
+# Run the optimised build
+$ target/release/seam-carving --file=img/balloons.jpg --width=34 --height=72
 ```
